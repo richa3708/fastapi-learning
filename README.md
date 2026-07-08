@@ -27,3 +27,19 @@ This repository documents my journey of learning FastAPI from basics to advanced
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
+
+# FastAPI Employee CRUD
+
+Features:
+
+FastAPI
+
+PostgreSQL
+
+SQLAlchemy ORM
+
+Alembic migrations
+
+Pydantic validation
+
+CRUD APIs

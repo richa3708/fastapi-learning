@@ -1,48 +1,103 @@
-from fastapi import APIRouter, status
-from app.schemas.employee import Employee
-from app.data.employees import employees
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+
+from app.dependencies import get_db
+from app.models.employee import Employee as EmployeeModel
+from app.schemas.employee import (
+    EmployeeCreate,
+    EmployeeResponse
+)
 
 router = APIRouter()
 
-@router.post("/employees", status_code=status.HTTP_201_CREATED)
-def create_employee(employee: Employee):
-    new_employee = employee.model_dump()
-    new_employee["id"] = len(employees) + 1
-    employees.append(new_employee)
-    return {
-        "message": "Employee created successfully",
-        "employee": new_employee
-    }
+@router.post(
+  "/employees", 
+  response_model=EmployeeResponse,
+  status_code=status.HTTP_201_CREATED
+)
+def create_employee(
+    employee: EmployeeCreate,
+    db: Session = Depends(get_db)
+):
+    db_employee = EmployeeModel(
+        name=employee.name,
+        email=employee.email,
+        age=employee.age,
+        department=employee.department,
+        active=employee.active,
+    )
 
-@router.get("/employees")
-def get_employees():
+    db.add(db_employee)
+    db.commit()
+    db.refresh(db_employee)
+
+    return db_employee
+
+@router.get("/employees", response_model=List[EmployeeResponse])
+def get_employees(db: Session = Depends(get_db)):
+    employees = db.query(EmployeeModel).all()
     return employees
 
-@router.get("/employees/{employee_id}")
-def get_employee(employee_id: int):
-    for employee in employees:
-        if employee["id"] == employee_id:
-            return employee
-    return {"message": "Employee not found!"}
+@router.get("/employees/{employee_id}", response_model=EmployeeResponse)
+def get_employee(employee_id: int, db: Session = Depends(get_db)):
+    employee = db.query(EmployeeModel).filter(
+        EmployeeModel.id == employee_id
+    ).first()
 
-@router.put("/employees/{employee_id}")
-def update_employee(employee_data: Employee, employee_id: int):
-    for employee in employees:
-        if employee["id"] == employee_id:
-            new_employee = employee_data.model_dump()
-            employee.update(new_employee)
-            return {
-                "message": "Employee updated successfully",
-                "employee": employee
-            }
-    return {"message": "Employee not found!"}
+    if not employee:
+        raise HTTPException(
+            status_code=404,
+            detail="Employee not found"
+        )
+
+    return employee
+
+@router.put("/employees/{employee_id}", response_model=EmployeeResponse)
+def update_employee(
+    employee: EmployeeCreate,
+    employee_id: int,
+    db: Session = Depends(get_db)
+):
+    db_employee = db.query(EmployeeModel).filter(
+        EmployeeModel.id == employee_id
+    ).first()
+
+    if not db_employee:
+        raise HTTPException(
+            status_code=404,
+            detail="Employee not found"
+        )
+
+    db_employee.name = employee.name
+    db_employee.email = employee.email
+    db_employee.age = employee.age
+    db_employee.department = employee.department
+    db_employee.active = employee.active
+
+    db.commit()
+    db.refresh(db_employee)
+
+    return db_employee
 
 @router.delete("/employees/{employee_id}")
-def delete_employee(employee_id: int):
-    for employee in employees:
-        if employee["id"] == employee_id:
-            employees.remove(employee)
-            return {
-                "message": "Employee deleted successfully"
-            }
-    return {"message": "Employee not found!"}
+def delete_employee(
+    employee_id: int,
+    db: Session = Depends(get_db)
+):
+    employee = db.query(EmployeeModel).filter(
+        EmployeeModel.id == employee_id
+    ).first()
+
+    if not employee:
+        raise HTTPException(
+            status_code=404,
+            detail="Employee not found"
+        )
+
+    db.delete(employee)
+    db.commit()
+
+    return {
+        "message": "Employee deleted successfully"
+    }

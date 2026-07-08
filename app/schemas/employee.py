@@ -1,9 +1,19 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
-class Employee(BaseModel):
+class EmployeeCreate(BaseModel):
     name: str = Field(min_length=3, max_length=50)
     age: int = Field(gt=18, lt=60)
     department: str
     email: Optional[str] = None
     active: bool = True
+
+class EmployeeResponse(BaseModel):
+    id: int
+    name: str
+    age: int
+    department: str
+    email: Optional[str]
+    active: bool
+
+    model_config = ConfigDict(from_attributes=True)
