@@ -7,6 +7,7 @@ class EmployeeCreate(BaseModel):
     department: str
     email: Optional[str] = None
     active: bool = True
+    password: str
 
 class EmployeeResponse(BaseModel):
     id: int

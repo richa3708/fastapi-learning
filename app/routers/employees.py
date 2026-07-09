@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.dependencies import get_db
+from app.core.security import hash_password
 from app.models.employee import Employee as EmployeeModel
 from app.schemas.employee import (
     EmployeeCreate,
@@ -26,6 +27,7 @@ def create_employee(
         age=employee.age,
         department=employee.department,
         active=employee.active,
+        password=hash_password(employee.password),
     )
 
     db.add(db_employee)
@@ -74,6 +76,7 @@ def update_employee(
     db_employee.age = employee.age
     db_employee.department = employee.department
     db_employee.active = employee.active
+    db_employee.password = hash_password(employee.password)
 
     db.commit()
     db.refresh(db_employee)
